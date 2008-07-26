@@ -1,11 +1,13 @@
 /* This is the header file for the Microsoft compiler, defining all
  * system and compiler dependent configuration macros */
 
-/* Define to 64bit integer type */
+/* Define to 64bit integer types */
 #if _MSC_VER==1200
 #define COIN_INT64_T __int64
+#define COIN_UINT64_T __uint64
 #else
 #define COIN_INT64_T long long
+#define COIN_UINT64_T unsigned long long
 #endif
 
 /* Define to integer type capturing pointer */
@@ -132,6 +134,12 @@
 
 /* Define to 1 if va_copy is avaliable */
 /* #undef HAVE_VA_COPY */
+
+/* Define to 1 if you have the <windows.h> header file. */
+/* #undef HAVE_WINDOWS_H */
+
+/* Define to 1 if you have the `_snprintf' function. */
+#define HAVE__SNPRINTF 1
 
 /* Define to be the name of C-function for Inf check */
 #define MY_C_FINITE _finite

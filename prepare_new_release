@@ -105,7 +105,7 @@ if test $new_rel = -10000; then
 elif test $new_rel = 0; then
   new_rel=1
 else
-  let new_rel++
+  new_rel=`(expr $new_rel + 1)`
 fi
 new_ver="$stable_branch.$new_rel"
 
@@ -177,7 +177,7 @@ tmpbas=`cd $tmpbas; pwd`
 cd $tmpcodir
 
 echo ''
-conf_ac_files=`find . -name 'configure.ac'`
+conf_ac_files=`find . -name 'configure.ac' | grep -v -E 'ThirdParty/.*/.*/configure.ac'`
 echo "===> Creating backup (.bak) for configure.ac files..."
 for i in $conf_ac_files; do
   cp $i $i.bak
@@ -186,7 +186,7 @@ done
 echo ''
 echo "===> Updating version number ($new_ver) in configure.ac files"
 for i in $conf_ac_files; do
-  sed -e "s|AC_INIT\(.*\)\[[0-9\.]*\],\(.*\)|AC_INIT\1[$new_ver],\2|" $i > bla
+  sed -e "s|AC_INIT\(.*\)\[[0-9A-Za-z\.]*\],\(.*\)|AC_INIT\1[$new_ver],\2|" $i > bla
   mv bla $i
   svn di $i
 done
@@ -207,7 +207,7 @@ if test -r Externals; then
       ext_url=$i
       if (echo $ext_url | grep -E 'stable/' >/dev/null); then :; else
         echo ''
-        echo "The external URL $ex_url is not for a stable release. Exiting."
+        echo "The external URL $ext_url is not for a stable branch. Exiting."
         echo ''
         exit -2
       fi
@@ -283,8 +283,12 @@ if test -r Externals; then
           if test -r $ext_name/$getfile; then
 	    curdir=`pwd`
             cd $ext_name
-            echo "Running $getfile in `pwd`"
-            eval ./$getfile
+            echo "Running $getfile -patch in `pwd`"
+#	    mv $getfile $getfile.orig
+#	    sed -e 's+ftp://+http://+g' $getfile.orig > $getfile
+#	    chmod +x $getfile
+            eval ./$getfile -patch
+#	    mv $getfile.orig $getfile
             cd "$curdir"
           fi
           ;;

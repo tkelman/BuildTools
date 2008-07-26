@@ -1,10 +1,29 @@
-# Copyright (C) 2006 International Business Machines and others.
+# Copyright (C) 2006, 2007 International Business Machines and others.
 # All Rights Reserved.
 # This file is distributed under the Common Public License.
 
-## $Id: Makmaint.inc 5920 2006-05-02 05:51:22Z andreasw $
+## $Id$
 
 # Author:  Andreas Waechter           IBM    2006-04-13
+
+########################################################################
+#                    Documentation installation                        #
+########################################################################
+
+DocFiles =  README AUTHORS LICENSE
+DocInstallDir = $(prefix)/share/doc/coin/$(PACKAGE_NAME)
+
+install-doc: $(DocFiles)
+	test -z "$(DocInstallDir)" || $(mkdir_p) "$(DESTDIR)$(DocInstallDir)"
+	for file in $(DocFiles); do \
+	  if test -f "$$file"; then dir=; else dir="$(srcdir)/"; fi; \
+	  if test -f "$$dir$$file"; then $(INSTALL_DATA) "$$dir$$file" "$(DESTDIR)$(DocInstallDir)/$$file"; fi; \
+	done
+
+uninstall-doc:
+	for file in $(DocFiles); do \
+	  rm -f "$(DESTDIR)$(DocInstallDir)/$$file"; \
+	done
 
 ########################################################################
 #                         Maintainer Stuff                             #
@@ -56,3 +75,5 @@ DISTCLEANFILES += .Externals-stamp
 endif
 
 DISTCLEANFILES += $(VPATH_DISTCLEANFILES)
+
+.PHONY: install-doc uninstall-doc update-externals
