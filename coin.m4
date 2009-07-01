@@ -1,4 +1,4 @@
-# Copyright (C) 2006, 2007 International Business Machines.
+# Copyright (C) 2006, 2009 International Business Machines.
 # All Rights Reserved.
 # This file is distributed under the Common Public License.
 #
@@ -526,9 +526,18 @@ esac
 $as_unset ac_cv_prog_CXX || test "${ac_cv_prog_CXX+set}" != set || { ac_cv_prog_CXX=; export ac_cv_prog_CXX; }
 # AC_MSG_NOTICE([C++ compiler candidates: $comps])
 AC_PROG_CXX([$comps])
-if test -z "$CXX" ; then
-  AC_MSG_ERROR([Failed to find a C++ compiler!])
-fi
+
+#AC_PROG_CXX sets CXX to g++ if it cannot find a working C++ compiler
+#thus, we test here whether $CXX is actually working 
+AC_LANG_PUSH(C++)
+AC_MSG_CHECKING([whether C++ compiler $CXX works]);
+AC_COMPILE_IFELSE(
+  [AC_LANG_PROGRAM(, [int i=0;])],
+  [AC_MSG_RESULT(yes)],
+  [AC_MSG_RESULT(no)
+   AC_MSG_ERROR(failed to find a C++ compiler or C++ compiler $CXX does not work)]
+)
+AC_LANG_POP(C++)
 
 # It seems that we need to cleanup something here for the Windows 
 case "$CXX" in
@@ -2973,7 +2982,7 @@ if test x"$use_lapack" != x; then
         AC_MSG_ERROR([option \"BUILD\" specified for LAPACK, but $coin_lapackobjdir directory is not configured])
       fi
     fi
-  else
+  elif test "$use_lapack" != no; then
     AC_MSG_CHECKING([whether user supplied LAPACKLIB=\"$use_lapack\" works])
     LIBS="$use_lapack $LIBS"
     ADDLIBS="$use_lapack $ADDLIBS"
@@ -3058,7 +3067,7 @@ fi
 AM_CONDITIONAL([COIN_HAS_LAPACK],[test x"$use_lapack" != x])
 AM_CONDITIONAL([COIN_BUILD_LAPACK],[test "$use_lapack" = BUILD])
 
-if test x"$use_lapack" = x; then
+if test x"$use_lapack" = x || test "$use_lapack" = no; then
   coin_has_lapack=no
 else
   coin_has_lapack=yes
@@ -3093,7 +3102,10 @@ MAKEOKFILE=.MakeOk
 
 #check if user provides a MUMPS library (that works)
 AC_LANG_PUSH(C)
+SAVE_ADDLIBS="$ADDLIBS"
+ADDLIBS="$ADDLIBS $FLIBS"
 AC_COIN_HAS_USER_LIBRARY(mumps, MUMPS, dmumps_c.h, dmumps_c)
+ADDLIBS="$SAVE_ADDLIBS"
 AC_LANG_POP(C)
 
 if test "$coin_has_mumps" = "true"; then  # user provided mumps library
@@ -3145,6 +3157,85 @@ fi
 AM_CONDITIONAL([COIN_BUILD_MUMPS],[test "$use_mumps" = BUILD])
 
 ]) # AC_COIN_HAS_MUMPS
+
+###########################################################################
+#                            COIN_HAS_METIS                               #
+###########################################################################
+
+# This macro checks for a library containing the METIS library.  It
+# checks if the user has provided an argument for the METIS library,
+# and if not, it checks whether the METIS ThirdParty/Metis directory has
+# been configured.  It adds to ADDLIBS any flags required to link with
+# an externally provided METIS.  It defines the makefile conditional
+# and preprocessor macro COIN_HAS_METIS, if METIS is available, and it
+# defines the makefile conditional COIN_BUILD_METIS, if METIS is
+# compiled within COIN.
+
+AC_DEFUN([AC_COIN_HAS_METIS],
+[
+case "$PACKAGE_NAME" in
+  ThirdParty*)
+    coin_metisobjdir=../Metis
+    ;;
+  *)
+    coin_metisobjdir=../ThirdParty/Metis
+    ;;
+esac
+
+MAKEOKFILE=.MakeOk
+
+#check if user provides a METIS library (that works)
+AC_LANG_PUSH(C)
+AC_ARG_WITH(metis,
+   AS_HELP_STRING([--with-metis], [specify flags to link with METIS library]),
+   [METISLIB="$withval"; coin_has_metis=true], [coin_has_metis=no])
+
+if test $coin_has_metis = true; then
+  coin_save_LIBS="$LIBS"
+  LIBS="$METISLIB $ADDLIBS"
+  AC_MSG_CHECKING([whether symbol metis_nodend is available with ])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[]],[[metis_nodend()]])],
+     [AC_MSG_RESULT(yes)],
+     [AC_MSG_RESULT(no)
+      AC_MSG_ERROR([User-supplied METIS library does not work])])
+  LIBS="$coin_save_LIBS"
+fi
+AC_LANG_POP(C)
+
+if test "$coin_has_metis" = "true"; then  # user provided metis library
+  use_metis=yes
+  coin_has_metis=yes
+
+  ADDLIBS="$METISLIB $ADDLIBS"
+
+else # no user provided library, so we try to build our own
+  use_metis=BUILD
+
+  # Check if the METIS' ThirdParty project has been configured
+  if test "$PACKAGE_NAME" != ThirdPartyMetis; then
+    if test -r $coin_metisobjdir/.MakeOk; then
+      use_metis=BUILD
+    else
+      use_metis=
+    fi
+  fi
+
+  if test x"$use_metis" != x; then
+    coin_has_metis=yes
+  else
+    coin_has_metis=no
+  fi
+  AC_MSG_CHECKING([whether METIS is available])
+  AC_MSG_RESULT([$coin_has_metis])
+fi
+
+AM_CONDITIONAL([COIN_HAS_METIS],[test $coin_has_metis = yes])
+if test $coin_has_metis = yes; then
+  AC_DEFINE([COIN_HAS_METIS],[1],[If defined, the METIS library is available.])
+fi
+
+]) # AC_COIN_HAS_METIS
+
 
 ###########################################################################
 #                             COIN_HAS_GLPK                               #
